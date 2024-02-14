@@ -1,0 +1,269 @@
+---
+title: "Homework 1"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F,fig.align='center')
+library(tidyverse)
+```
+
+## Problem 1 <small>(2pts each, 8pts total)</small>
+
+Here are a few probability exercises to get you warmed up.
+
+a.  Find the variance of a fair d20 die (i.e. 20-sided die with numbers 1,2,...,20).
+    You may use R if you like.
+
+b.  Suppose you have an uneven 6-sided die where the numbers 1-5 are equally likely to occur, and the expected value of the entire die is 4.
+    What is the probability of getting a 6?
+    (Hint: Let $x$ represent the probability of getting a 6, and represent the probability of the other numbers algebraically. Then derive an expression for the expected value, let it equal 4, and solve. You can go back and check your work by plugging the result back into your original expressions and verify it works with R.)
+
+c.  Give **two examples** of pairs of events that are mutually exclusive and explain why for each.
+
+d.  Give **two examples** of pairs of events that are independent and explain why for each.
+
+```{r}
+# PART a
+d20 = 1:20
+roll = sample(d20, 20, TRUE)
+a = var(roll)
+a
+```
+
+```{r}
+#Part B
+diceest = sum(1:6)/6
+expectedvalue = 4
+difference = expectedvalue - diceest
+unfairdiceest = sum(1:5)/5
+difference2 = expectedvalue - unfairdiceest
+x = difference2 - difference
+x
+
+```
+
+```{r}
+#Part c
+example1 = "Using an elevator, because you can only go one direction at a time"
+example1
+example2 = "Rolling a dice. You can only get one number at a time, and not a different one thats on the dice at the same time."
+example2
+```
+
+```{r}
+#Part D
+example3= "a coin flip, because the chance of p = 1/2 is unaffected"
+example3
+example4="Rolling a D20. 20 even sides, it is not affected by any other events, and has a chance of p = 1/20"
+example4
+```
+
+## Problem 2 <small>(2pts each, 12pts total)</small>
+
+For each of the following scenarios, decide what random variable may be appropriate to use as a model, and explain your reasoning as well as any assumptions you make.
+
+a.  The number of patients in an experimental drug trial that respond to treatment.
+b.  The number of Teslas you see on your way to school in the morning.
+c.  What the second hand reads on the clock when you wake up from a long nap (approximately).
+d.  How many people you need to swipe right on Tinder before you get a match.
+e.  The number of shoes of each size in a shoe store (approximately).
+f.  Whether the Eagles win the Superbowl this year.
+
+```{r}
+#PART A
+partA = "Discrete, because it counts how many people are affected by the treatment"
+partA
+
+#PART B
+partB = "continuous, because its a random amount of cars that arrive"
+partB
+
+#PART C
+partC = "Poisson, because it is a very specific value at the time you wake up"
+partC
+
+#PART D
+partD = "Bernoulli, because either it is 0, which is no match, or 1, which is a match"
+partD
+
+#PART E
+partE = "continuous, because there is an infinite range of shoe sizes, and different shoes, and sizes can vary based on brand"
+partE
+
+#Part F
+partF = "Poisson, because it is specific that the  eagles win every game they play this season."
+partF
+```
+
+## Problem 3 <small>(2pts each, 10pts total)</small>
+
+For this next problem, we're going to empirically demonstrate the law of large numbers by simulating $N$ observations of a random variable, and show the convergence of the sample mean to the theoretical mean.
+Consider a poisson variable $X$ with $\lambda=13$.
+It should hopefully be clear from the definition of the poisson that $E(X)=\lambda=13$.
+
+a.  Start by creating a data frame with 2 columns: a column named `n` that goes from 1, 2, ..., up to 1000; and a second column named `x` which is just 1000 repeated observations of a poisson random variable with `lambda=13`.
+
+```{r}
+dataframe = tibble("n" = c(1:1000),
+                   "x" = rpois(1:1000, lambda = 13))
+```
+
+b.  Next, create a third column named `xbar` that computes the "mean-thus-far" up to each row. E.g. if the first 3 values of `x` are 3, 1, 8, then the first 3 values of `xbar` should be 3, 2, 4, since 3=3, (3+1)/2=2, and (3+1+8)/3=4. (Hint: use the `cumsum()` function to take the cumulative sum of the `x` column, then divide by the number of observations so far)
+
+```{r}
+dataframe = dataframe %>% 
+  mutate(xbar = cumsum(x)/n)
+```
+
+c.  Make a line plot showing xbar vs n. Add a red line at the theoretical mean. Comment on what you observe in the plot. Is this what you were expecting? (Don't forget to add proper labels/titles).
+
+```{r}
+ggplot(dataframe, aes(x = n, y = xbar))+
+  geom_line()+
+  geom_vline(xintercept = mean(dataframe$xbar), color = "red") +
+  xlab("Count")+
+  ylab("mean-thus-far")+
+  ggtitle("XBar vs Count")
+```
+
+d.  Now, increase the number of simulations to 100,000 and remake the plot, this time with a log-scale x-axis to better show the rate of convergence across the entire axis. Comment again on the output. Explain if this does or does not empirically agree with the law of large numbers.
+
+```{r}
+dataframe2 = tibble("n" = c(1:100000),
+                   "x" = rpois(1:100000, lambda = 13))
+dataframe2 = dataframe2 %>% 
+  mutate(xbar = cumsum(x)/n)
+
+ggplot(dataframe2, aes(x = n, y = xbar))+
+  geom_line()+
+  geom_vline(xintercept = mean(dataframe$xbar), color = "red") +
+  scale_x_log10()+
+  xlab("Count")+
+  ylab("mean-thus-far")+
+  ggtitle("XBar vs Count")
+```
+
+### This does follow the law of large numbers, as the count goes to 10\^5
+
+e.  Repeat the above steps with a **different** random variable. You can copy your entire code chunk so far and just make the necessary modifications. Comment on this output too and whether or not it also agrees with your expectations. Make sure you CLEARLY define what the random variable you're using and clearly state what the expected value is (you may look this up on the internet if it's a new random variable we covered this week that we did not give the expectation formula for in class).
+
+```{r}
+dataframe3 = tibble("n" = c(1:10000),
+                   "x" = rbinom(1:10000, 20,0.3))
+dataframe3 = dataframe2 %>% 
+  mutate(xbar = cumsum(x)/n)
+
+ggplot(dataframe3, aes(x = n, y = xbar))+
+  geom_line()+
+  geom_vline(xintercept = mean(dataframe$xbar), color = "red") +
+  scale_x_log10()+
+  xlab("Count")+
+  ylab("mean-thus-far")+
+  ggtitle("XBar vs Count")
+```
+
+## I didn't expect anything to be honest, but using a different discrete variable gave me a graph that looks similar to the last one that is above this. I used **RBINOM** to compute my discreet variable, and the expected value is around **13**.
+
+<br/><br/> ***The last 2 problems are intended to be done after we begin the Monte Carlo lectures, but you are welcome to get a head start on them if you feel motivated to do so.*** <br/><br/>
+
+## Problem 4: Generalized [birthday problem](https://en.wikipedia.org/wiki/Birthday_problem) <small>(12pts)</small>
+
+The birthday problem asks for the probability that in a group of $n$ people, **at least 2 people** will share the same birthday.
+This is a standard question in introductory probability.
+In this problem, we will generalize the birthday problem to a much more difficult question and then solve it using a Monte Carlo approach.
+
+**Question:** in $n$ people, what is the probability that at least $k$ people have the same birthday?
+
+Write a function `birthday(n, k, m)` that takes 3 arguments:
+
+-   $n$ is the number of people in your sample
+    -   for example, if `n=50` is used, we are asking "in 50 people, what is the probability that..."
+-   $k$ is minimum number of people that you asking for the probability of sharing a birthday
+    -   for example if `k=4` is used, we asking "...what is the probability that at least 4 people share the same birthday?
+-   $m$ is the number of replicates in your simulation (default 1000)
+    -   for example, if `m=1000` is used, your function should run 1000 replicates
+
+`birthday(n, k, m)` should return a Monte Carlo estimate, based on `m` Monte Carlo replicates, of the probability that among `n` people, at least `k` of them have the same birthday.
+
+**Notes:**
+
+-   You may assume there are 365 possible dates (no leap years)
+-   You may assume birthdays are uniformly distributed across the calendar
+    -   this is actually not true; see [this](https://www.panix.com/~murphy/bday.html), or [this](https://fivethirtyeight.com/features/lots-of-parents-dont-want-their-kids-to-be-born-on-leap-day/), but we're going to make the simplifying assumption.
+-   You may assume the people are sampled [i.i.d.](https://en.wikipedia.org/wiki/Independent_and_identically_distributed_random_variables).
+
+**Hints:**
+
+1.  There's no need to use actual dates in the simulation process. Numbers can represent dates and are easier to generate and manipulate in `R`. In particular, we recommend using the `sample()` function with the `x`, `size`, and `replace` arguments set appropriately. See the help page `?sample` for details.
+2.  Given a vector of numbers, you can easily find duplicates by using the `table()` function. This will produce a named vector showing how many of each value there are. For example, running `table(c(1, 3, 5, 5, 7, 9, 9, 9))` will show you there is one 1, one 3, two 5s, one 7, and three 9s.
+3.  In your function, you will need to use a `for` loop to repeat the simulation `m` times. You will also need a variable outside your `for` loop to keep track of how many replicates satisfy that the number of people with same birthdays $\geq k$.
+4.  If your function is running correctly, then `birthday(n=23,k=2)`, `birthday(n=87,k=3)` and `birthday(n=188,k=4)` should all be approximately $50\%$.
+5.  If your function is very slow, make sure you're paying attention to hint 1 and using numbers appropriately to represent dates in a memory efficient way. You may also consider using the [`dqsample` function](https://rdrr.io/cran/dqrng/man/dqsample.html) from the `dqrng` package which is about 2-3 times faster than the normal `sample` function, or the [`Table` function](https://rdrr.io/cran/Rfast/man/Table.html) from the `Rfast` package which is about 4-5 times faster than the normal `table()` function (especially if you set `names=FALSE`).
+
+```{r}
+birthday=function(n, k, m=1000){
+  count=0
+  for (i in 1:m){
+    birthdays = sample(1:365, n, TRUE)
+    if (any(table(birthdays)>=k)){
+      count = count+1
+    }
+  }
+  probability=count / m
+  return(probability)
+}
+birthday(23, 2)
+birthday(87,3)
+birthday(188, 4)
+```
+
+This class currently has 285 enrolled students (across two sections).
+Use your function to estimate the approximate probability that at least $5$ students have the same birthdays?
+Use as many replicates can you can comfortably run on your computer.
+
+```{r}
+classtotal = birthday(285, 5)
+classtotal
+```
+
+## Problem 5: Simulating a random variable <small>(8pts)</small>
+
+Define a random variable $X$ with density $$
+f_X(t) = \begin{cases}
+      2t &\mbox{ if } 0 \le t \le 1 \\
+      0 &\mbox{ otherwise. }
+      \end{cases}
+$$
+
+```{r, fig.width=5.7, fig.height=4}
+# here we define a *vectorized* function to evaluate the density of X
+pdf_x = function(x) {
+  # ifelse is like a function version of an if statement.
+  # We use it here to ensure that pdf_x can operate directly on vectors.
+  return(ifelse(0<=x & x<=1 , 2*x , 0 ))
+}
+
+# showing the PDF in a plot
+ggplot() + geom_function(fun=pdf_x, n=10001) + 
+  coord_fixed(ratio=.5) + theme_minimal() + 
+  xlim(c(-1,2)) + ylim(-1,3) + labs(x="x", y="f(x)")
+```
+
+This means that the cumulative distribution function is $$F_X(t)=\int_0^tf_X(u)du=t^2$$ for $0 \le t \le 1$, and $F_X(t) = 1$ for $t \ge 1$.
+Write a function `rx(n)` (like `rbinom`) to sample from this random variable, where `n` is the size of the sample to be drawn.
+Then, use your function to draw sample of size 1000 and plot a histogram of the output to verify the results make sense.
+
+```{r}
+# complete the function
+rx = function(t) {
+  return(-runif(t)^2)
+}
+
+# The histogram should look like the PDF we plotted above.
+# Uncomment the following line of code and check it looks correct
+hist(rx(1000))
+```

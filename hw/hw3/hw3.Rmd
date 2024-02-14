@@ -1,0 +1,236 @@
+---
+title: "Homework 3"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: sentence
+    author: Leo XIONG
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F,fig.align='center')
+library(tidyverse)
+```
+
+## Problem 1: The infamous mule kick data <small>20pts</small>
+
+The file `mule_kicks.csv`, available for download (here)[<https://kdlevin-uwstat.github.io/STAT340-Fall2021/hw/03/mule_kicks.csv>], contains a simplified version of a very famous data set.
+The data consists of the number of soldiers killed by being kicked by mules or horses each year in a number of different companies in the Prussian army near the end of the 19th century.
+
+This may seem at first to be a very silly thing to collect data about, but it is a very interesting thing to look at if you are interested in rare events.
+Deaths by horse kick were rare events that occurred independently of one another, and thus it is precisely the kind of process that we might expect to obey a Poisson distribution.
+
+Download the data and read it into R by running
+
+```{r}
+download.file('https://kdlevin-uwstat.github.io/STAT340-Fall2021/hw/03/mule_kicks.csv', destfile='mule_kicks.csv')
+mule_kicks = read.csv('../../data/mule_kicks.csv', header=TRUE)
+
+head(mule_kicks)
+```
+
+`mule_kicks` contains a single column, called `deaths`.
+Each entry is the number of soldiers killed in one corps of the Prussian army in one year.
+There are 14 corps in the data set, studied over 20 years, for a total of 280 death counts.
+
+### Part a: estimating the Poisson rate <small>5pts</small>
+
+Assuming that the mule kicks data follows a Poisson distribution, produce a point estimate for the rate parameter $\lambda$.
+There are no strictly right or wrong answers, here, though there are certainly better or worse ones.
+
+```{r}
+lambdahat <- NA # TODO: write code store your estimate in lambdahat.
+lambdahat = mean(mule_kicks$deaths)
+lambdahat
+
+```
+
+### Part b: constructing a CI <small>10pts</small>
+
+Using everything you know (Monte Carlo, CLT, etc.), construct a confidence interval for the rate parameter $\lambda$.
+Explain in reasonable detail what you are doing and why you are constructing the confidence interval in this way (a few sentences is fine!).
+
+```{r}
+confint = qnorm(0.975)
+MC = 1000
+test = 0
+for(i in 1:MC){
+  error = confint*sqrt(lambdahat/i)
+  test = append(test, error)
+}
+lower = lambdahat - mean(test)
+upper = lambdahat + mean(test)
+lower
+upper
+```
+
+------------------------------------------------------------------------
+
+With the code above, we use the monte carlo function above to calculate 1000 samples of the margin of error under each i, and subtract/add the mean of our errors to lambdahat to find the upper and lower boundaries of our confidence interval
+
+------------------------------------------------------------------------
+
+### Part c: assessing a model <small>5pts</small>
+
+Here's a slightly more open-ended question.
+We *assumed* that the data followed a Poisson distribution.
+This may or may not be a reasonable assumption.
+Use any and all tools that you know to assess (either with code or simply in words) how reasonable or unreasonable this assumption is.
+
+Once again, there are no strictly right or wrong answers here.
+Explain and defend your decisions and thought processes in a reasonable way and you will receive full credit.
+
+------------------------------------------------------------------------
+
+TODO: Code, plots and/or explanation go here.
+
+```{r}
+ggplot(mule_kicks, aes(x = deaths, color = "red", fill = "green"))+
+  geom_bar()+
+  xlab("Mule deaths")+
+  ylab("Count")+
+  ggtitle("bar graph of death count")
+plot(mule_kicks$deaths, dpois(mule_kicks$deaths, lambdahat),
+     main='Poisson Distribution (lambda = 0.7)',
+     ylab='Poisson Distribution',
+     xlab ='Mule deaths',)
+explain = "Looking at these two graphs, we can compare them and determine our answer, which we can assume that the graph is a poisson distribution"
+explain
+
+```
+
+------------------------------------------------------------------------
+
+## Problem 2: Closing the loop <small>10 pts</small>
+
+In our discussion of the Universal Widgets of Madison company from lecture, we said that we were interested in two questions:
+
+1.  Estimating the probability $p$ that a widget is functional.
+2.  How many widgets should be in a batch to ensure that (with high probability) a batch ships with at least $5$ functional widgets in it?
+
+We discussed question (1) at length in lecture.
+What about question (2)?
+Our client wants to know how many widgets should ship in each batch so as to ensure that the probability there are at least $5$ functional widgets in a batch is at least $0.99$.
+
+Now, suppose that we have observed data and estimated $p$ to be $0.82$.
+
+Use everything you know so far in this course to give a recommendation to the client.
+Be sure to explain clearly what you are doing and why.
+If there are any steps, assumptions, etc., that you are not 100% pleased with, feel free to point them out.
+
+**Note:** there are at least two "obvious" ways to solve this problem.
+One is based on using Monte Carlo (i.e., assume $p=0.82$ is the truth, and try generating batches of different sizes, etc.).
+The other uses direct computation of probabilities, using basic facts about Binomial RVs.
+Neither of these is necessarily better than the other, and you do not need to use both approaches to receive full credit.
+Indeed, you are free to try doing something else entirely, if you wish.
+Just explain clearly what you are doing and why!
+
+```{r}
+p = 0.82
+MC = 10000
+count = 0
+for(i in 1:MC){
+  if(sample(5:20,1,TRUE) > sample(5:20,1,TRUE)*0.82){
+    count = count+1
+  }
+}
+boxespercent = count / MC
+ceiling(boxespercent * ceiling(mean(5:20)))
+```
+
+------------------------------------------------------------------------
+
+In my code, I am using 10000 counts, and a sample of 5:20.
+5 widgets is the minimum needed for the batch requirement to work.
+I used the max value of 20, because large batchnumber (ex 200) is going to have more than 5 working.
+So, after doing 10000 samples of batches that work and getting a probability, we multiply it my the average amount of sample we used, and round up because we cant have a half of a widget.
+Multiplying the avg and the percent gives us the estimated amount of widgets needed, so the answer is at least 9 widgets per batch for at least 5 to work.
+
+------------------------------------------------------------------------
+
+## Problem 3: Permutation testing for correlatedness <small>20pts</small>
+
+We mentioned in lecture that independence and uncorrelatedness are usually things that we have to assume of our data, but that there are, in some settings, ways to detect the presence or absence of dependence.
+This problem will give an example of that, using our old friend the permutation test.
+
+Suppose that we observe pairs $(X_i, Y_i)$ where $X_i, Y_i \in \mathbb{R}$ for each $i=1,2,\dots,n$, with all $n$ pairs being independent of one another.
+That is, $(X_i,Y_i)$ is independent of $(X_j,Y_j)$ for $i \neq j$.
+
+Most typically, we think of these as predictor-response pairs.
+For example, the $X_i$ might represent years of education and $Y_i$ might represent income at age 30, and we want to predict $Y$ from a given value of $X$.
+These kinds of problems are probably familiar to you from your discussion of regression in STAT240, and that's a problem we'll return to in a couple of weeks.
+For now, though, let's forget about trying to estimate a regression coefficient or predict anything and instead just try to assess whether or not the $X$s and $Y$s are correlated at all.
+
+If $X_i$ and $Y_i$ are completely uncorrelated over all $i=1,2,\dots,n$, then, much like in permutation testing, it shouldn't matter what order the $Y$s appear with respect to the $X$s.
+That is, we should be able to shuffle the responses (i.e., the $Y_i$ terms) and not much should change in terms of how the data "looks".
+In particular, the correlation between the $X$s and $Y$s should not change much on average.
+
+### Part a: reading data, plotting and the eyeball test <small>10pts</small>
+
+The following code reads the horsepower (`hp`) and miles per gallon (`mpg`) columns from the famous `mtcars` data set (see `?mtcars` for background or a refresher).
+
+```{r}
+hp <- mtcars$hp
+mpg <- mtcars$mpg
+```
+
+Create a scatter plot of the data and state whether or not you think the variables `hp` and `mpg` are correlated, based on the plot (and explain what in the plot makes you think this).
+There is no need to do any statistics here-- just look at the data and describe what you see and what it suggests to you.
+
+```{r}
+
+#TODO: plotting code goes here.
+plot(hp, mpg)
+```
+
+------------------------------------------------------------------------
+
+The correlation between MPG and HP is not very strong.
+There is a trend that is present, but it is not consistent, and is negative.
+
+------------------------------------------------------------------------
+
+### Part b: testing for correlation <small>10pts</small>
+
+Use a permutation test to assess whether or not the vectors `hp` and `mpg` are correlated.
+Pick a reasonable level $\alpha$ for your test and accept or reject the null hypothesis (letting $H$ be the RV representing horsepower and $M$ be the RV representing miles per gallon)
+
+$$
+H_0 : \operatorname{ Corr }( H, M ) = 0
+$$
+
+accordingly.
+Be sure to clearly explain your reasoning and give a basic explanation of the procedure you are following.
+Imagine that you are writing for a fellow STAT340 student, rather than for your professor or TA.
+
+**Hint:** remember, the basic permutation recipe is to shuffle the data and then compute the test statistic on the shuffled data.
+In this case, the "right" test statistic is clearly... (you'll have to decide, but there are one or two pretty obvious choices), and shuffling the data just corresponds to permuting the entries of either `hp` or `mpg`.
+
+```{r}
+alpha = 0.05
+datadiff = mean(hp) - mean(mpg)
+combined_data = c(hp, mpg)
+permutations = 1000
+permuted_corrs = numeric(permutations)
+
+for (i in 1:permutations) {
+  permuted_data = sample(combined_data)
+  data1 = permuted_data[1:length(hp)]
+  data2 = permuted_data[(length(hp)+1):length(combined_data)]
+  permuted_corrs[i] = mean(data1) - mean(data2)
+}
+pval = sum(abs(permuted_corrs) >= abs(datadiff)) / permutations
+if(alpha > pval){
+  print("We accept the null hypothesis, and there is no correlation between the two datasets")
+} else  {
+  print("The evidence here supports the rejection of the null hypothesis")
+}
+```
+
+------------------------------------------------------------------------
+
+What I did in my code, was to find the difference between the datasets to evaluate the difference.
+I used 1000 permutations, and in the for loop, mixed up the data, and got the averages for the first half of the mixed data, and the 2nd half of the data, then subtracted them to find the difference after permutation testing.
+Once I did this, I combined the values that are bigger than the difference, and divide by the permutation to get our Pval. Howeverm our pval is zero, which means that there is no correlation between MPG and horsepower.
+
+------------------------------------------------------------------------

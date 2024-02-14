@@ -1,0 +1,320 @@
+---
+title: "Homework 5"
+output: html_document
+author: Leo XIONG
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F,fig.align='center')
+library(tidyverse)
+```
+
+Each part of each question will be 5pts, there are 10 parts, so 50pts total.
+<br/>
+
+## 1. Interpreting logistic regression <small>15pts</small>
+
+Suppose we collect data for a group of students in a statistics class with independent variables $X_{1}=\text{hours studied}$, $X_{2}=\text{GPA}$, and binary response variable $$
+Y= \begin{cases} 1 &\mbox{ if student received an A} \\
+  0 &\mbox{ otherwise. }
+  \end{cases}
+$$ Suppose that we fit a logistic regression model to the data, predicting $Y$ from $X_1$ and $X_2$ (and an intercept term) and produce estimated coefficients $\hat{\beta}_{0}=-6, \hat{\beta}_{1}=0.05, \hat{\beta}_{2}=1$.
+
+### Part a) Logistic regression and probability
+
+According to our fitted model, what is the probability that a student receives an A if they study for $40$ hours and have a GPA of $3.5$?
+
+```{r}
+X1 = 40
+X2 = 3.5
+e = 2.71828182
+
+bhat0 =-6
+bhat1 =0.05
+bhat2 = 1
+
+z = -6 + bhat1*X1 + 1*X2
+
+prob = 1/(1+e^(-z))
+prob
+
+"The probability that a student will recieve a grade letter A is approximatly 37.75%"
+```
+
+### Part b) Interpreting coefficients
+
+According to our fitted model, an additional hour spent studying is associated with *how much* of an increase in the log odds of receiving an A?
+
+```{r}
+
+newX1 = 41
+X2 = 3.5
+e = 2.71828182
+
+bhat0 =-6
+bhat1 =0.05
+bhat2 = 1
+
+z = -6 + bhat1*newX1 + 1*X2
+
+prob2 = 1/(1+e^(-z))
+
+prob2-prob
+
+"An additional hour of studying increases the chance of getting an A by 0.01 Percent."
+```
+
+### Part c) "Inverting" logistic regression probabilities
+
+According to our fitted model, how many hours would the student in Part (a) need to study to have a $50\%$ chance of getting an A in the class?
+That is, keeping GPA fixed at $3.5$, how many hours of study are needed so that the probability of an A is $50\%$?
+If you aren't up for the math, feel free to find an approximate solution via guess-and-check in R.
+
+------------------------------------------------------------------------
+
+According to the code below, Students would need to study for at least 50 hours in order to have a 50% probability in getting a Grade A.
+
+------------------------------------------------------------------------
+
+```{r}
+
+hours =50
+X2 = 3.5
+e = 2.71828182
+
+bhat0 =-6
+bhat1 =0.05
+bhat2 = 1
+
+z = -6 + bhat1*hours + 1*X2
+
+atleast50 = 1/(1+e^(-z))
+atleast50
+
+```
+
+<br/>
+
+## 2. `mtcars` one more time <small>10pts</small>
+
+Let's take yet another look at the `mtcars` data set.
+Recall that the columns of this data set are:
+
+```{r}
+names(mtcars)
+```
+
+The `am` column encodes whether a car is automatic (`0`) or manual (`1`).
+Let's build a model to predict whether a car is manual or automatic.
+
+### Part a) Fitting/interpreting a model
+
+Fit a logistic regression model to regress `am` against the `drat` and `disp` (and an intercept term).
+
+```{r}
+lm_model = glm(am ~ drat+disp, data = mtcars, family = binomial)
+lm_model
+```
+
+Which coefficients (if any) are statistically significantly different from zero at the $\alpha=0.05$ level?
+Interpret the meaning of the estimated coefficient(s) that is/are statistically significantly different from zero.
+
+------------------------------------------------------------------------
+
+The only coefficient that is statistically different from zero with a 0.05 level is "disp", and because it is lower than 0.05, it means that the disp value is statistically significant.
+
+------------------------------------------------------------------------
+
+### Part b) Modifying/assessing the model
+
+Choose one of the statistically significant predictors above and re-fit a model using *only* that variable (and an intercept) to predict `am`.
+We'll see how to compare the quality of this model to the one from Part (a) when we talk about cross-validation (CV) in upcoming lectures.
+For now, compare the estimated coefficient of this variable in both models.
+Is there a sizable difference?
+
+Does anything else notable change about the model?
+
+```{r}
+
+remodel = glm(am ~ disp, data = mtcars, family = binomial)
+remodel
+"Deviance, AIC and the value of disp coefficient change only using disp as a single value instead of using two."
+```
+
+Choose one of the statistically significant predictors above.
+Use `ggplot2` to plot `am` as a function of this predictor, and overlay a curve describing the logistic regression output when using *only* this predictor to predict `am` (i.e., the model from Part c above).
+
+```{r}
+
+ggplot(mtcars, aes(x=drat, y=am))+
+  geom_smooth(se=FALSE)
+
+```
+
+<br/>
+
+## 3. Guided k-fold CV exercise <small>15pts</small>
+
+In this exercise, we will guide you through an exercise where you are asked to use k-fold cross validation to evaluate the performance of several models.
+
+For this exercise we will use the "Swiss Fertility and Socioeconomic Indicators (1888)" dataset from the `datasets` package, which is loaded below.
+(To view the help page, run `?datasets::swiss` in your console).
+We will be using `Fertility` as our response variable.
+
+```{r}
+swiss = datasets::swiss
+```
+
+### Part a) Understanding/visualizing data
+
+Read the help page and briefly "introduce" this dataset.
+Specifically, explain where the data comes from, what variables it contains, and why should people care about the dataset.
+
+Produce one or some visualizations of the data.
+Do your best here to try to use your plots to help your viewer best understand the structure and patterns of this dataset.
+Choose your plots carefully and briefly explain what each plot tells you about the data.
+
+### Part b) Starting with basic lm
+
+Compare a model with all predictors with no interactions with 2 other models of YOUR choice.
+Fit all 3 models, show their summary outputs, and briefly comment on which one you think might perform the best when used for future predictions and why.
+
+### Part c) Estimating MSE using CV
+
+Now, we are going to actually estimate the MSE of each model with K-fold cross validation.
+First we're going to set a seed and import the `caret` package (it should be already installed since it's a prerequisite for many other packages, but if it's not for some reason, you can install it with `install.packages("caret")`)
+
+```{r}
+set.seed(1)
+library(caret)
+```
+
+Next, use the following chunk, which already has `method` set to `lm`, `data` set to the `swiss` data set, and validation method set to use 5-fold CV, to estimate the MSE of each of your models.
+All you need to do is add in a formula for your model and repeat for all 3 models you have.
+
+```{r,error=T}
+model1 = train(Fertility ~ ., method="lm", data=swiss, trControl = trainControl(method="cv", number=5))
+model2 = train(Agriculture ~ ., method="lm", data=swiss, trControl = trainControl(method="cv", number=5))
+model3 = train(Education ~ ., method="lm", data=swiss, trControl = trainControl(method="cv", number=5))
+# repeat for model2 and model3
+print(model1)
+print(model2)
+print(model3)
+```
+
+Once you have your models fitted, use `print( )` to show the summary statistics for each model.
+Report the RMSE for each model, which is the square root of the MSE.
+Which of these models performs the best?
+Which performed the worst?
+Do these results agree with your expectations?
+
+```{r}
+"Yes, kind of? with the variables i chose, I expected some sort of outcomes, such as education would have a greater effect on fertility."
+```
+
+Bonus: repeat the above step, using `trControl = trainControl(method="repeatedcv", number=5, repeats=3)` which repeats each CV analysis 3times and averages out each run to get a more stable estimate of the MSE.
+Compare the results with the unrepeated MSE estimates.
+How do they compare?
+
+```{r}
+model11 = train(Fertility ~ ., method="lm", data=swiss, trControl = trainControl(method="repeatedcv", number=5, repeats=3))
+model12 = train(Agriculture ~ ., method="lm", data=swiss, trControl = trainControl(method="repeatedcv", number=5, repeats=3))
+model13 = train(Education ~ ., method="lm", data=swiss, trControl = trainControl(method="repeatedcv", number=5, repeats=3))
+print(model11)
+print(model12)
+print(model13)
+```
+
+<br/>
+
+## 5. Variable selection with `Carseats` <small>10pts</small>
+
+This question should be answered using the `Carseats` dataset from the `ISLR` package.
+If you do not have it, make sure to install it.
+
+```{r}
+library(ISLR)
+
+Carseats = ISLR::Carseats
+
+# you should read the help page by running ?Carseats
+# we can also peek at the data frame before using it
+str(Carseats)
+head(Carseats)
+```
+
+### Part a) Visualizing/fitting
+
+First, make some visualizations of the dataset to help set the stage for the rest of the analysis.
+Try to pick plots to show that are interesting informative.
+
+```{r}
+ggplot(Carseats, aes(x =Advertising, y =Education ))+
+  geom_point()+
+  geom_smooth(se=FALSE)
+ggplot(Carseats, aes(x=Price,y= Sales))+geom_point()+geom_smooth(se=FALSE)
+ggplot(Carseats, aes(x =Population, y =Income))+geom_point()+geom_smooth(se=FALSE)
+```
+
+Using some variable selection method (stepwise, LASSO, ridge, or just manually comparing a preselected of models using their MSEs), choose a set of predictors to use to predict `Sales`.
+Try to find the best model that you can that explains the data well and doesn't have useless predictors.
+Explain the choices you made and show the final model.
+
+```{r}
+model = lm(Sales ~ ., data = Carseats)
+predictors = step(model, direction = "forward")
+"I will use Income, CompPrice and Advertising as predictors to determine sales."
+
+```
+
+### Part b) Interpreting/assessing model
+
+According to your chosen model, Which predictors appear to be the most important or significant in predicting sales?
+Provide an interpretation of each coefficient in your model.
+Be careful: some of the variables in the model are qualitative!
+
+```{r}
+"I believe that according to the predictor values from left to right, the most significant predictors from best to worst would be, CompPrice, Income and Advertising. The coefficients in CompPrice is average sales between competitors, Advertising is the amount of times the company has advertised, and Income is the amount of money recieved after each unit purchased."
+
+```
+
+Estimate the out of sample MSE of your model and check any assumptions you made during your model fitting process.
+Discuss any potential model violations.
+How satisfied are you with your final model?
+
+```{r}
+model = lm(Sales ~ CompPrice, data = Carseats)
+predictions = predict(model, newdata = Carseats)
+residuals = Carseats$Sales - predictions
+squared_residuals = residuals^2
+mse = mean(squared_residuals)
+mse
+plot(Carseats$Sales, Carseats$CompPrice)
+```
+
+```{r}
+model = lm(Sales ~ Advertising, data = Carseats)
+predictions = predict(model, newdata = Carseats)
+residuals = Carseats$Sales - predictions
+squared_residuals = residuals^2
+mse = mean(squared_residuals)
+mse
+plot(Carseats$Sales, Carseats$Advertising)
+```
+
+```{r}
+model = lm(Sales ~ Income, data = Carseats)
+predictions = predict(model, newdata = Carseats)
+residuals = Carseats$Sales - predictions
+squared_residuals = residuals^2
+mse = mean(squared_residuals)
+mse
+plot(Carseats$Sales, Carseats$Income)
+```
+
+```{r}
+"I am not satisfied with the final model. as we look at the MSEs that I calculated, they seem to be quite high, which means that these three predictors do not play significant role in determining sales. Looking at the graphs I coded, the data is also very inconsistent."
+```
